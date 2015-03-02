@@ -2,6 +2,7 @@ package com.malsolo.spark.examples;
 
 import java.util.Arrays;
 
+import org.apache.spark.Accumulator;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -19,10 +20,23 @@ public class WordCount {
 		JavaSparkContext sc = new JavaSparkContext(conf);
 		
 		JavaRDD<String> lines = sc.textFile(INPUT_FILE_TEXT);
-		JavaPairRDD<String, Integer> counts = lines.flatMap(line -> Arrays.asList(line.split(" ")))
+		
+		final Accumulator<Integer> blankLines = sc.accumulator(0);
+		
+		@SuppressWarnings("resource")
+		JavaPairRDD<String, Integer> counts = lines.flatMap(line -> 
+			{
+				if ("".equals(line)) {
+					blankLines.add(1);
+				}
+				return Arrays.asList(line.split(" "));
+			})
 			.mapToPair(word -> new Tuple2<String, Integer>(word, 1))
 			.reduceByKey((x, y) -> x + y);
+		
 		counts.saveAsTextFile(OUTPUT_FILE_TEXT);
+		
+		System.out.println("Blank lines: " + blankLines.value());
 		
 		sc.close();
 	}
