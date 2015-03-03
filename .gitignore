@@ -1,5 +1,5 @@
 # Spark output directory for the sample
-out
+out*
 
 # Operating System Files
 
